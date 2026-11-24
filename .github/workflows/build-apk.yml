@@ -34,6 +34,21 @@ jobs:
           fi
           echo "root=$ROOT" >> "$GITHUB_OUTPUT"
 
+      - name: Repair empty Android strings resource
+        working-directory: ${{ steps.locate.outputs.root }}
+        shell: bash
+        run: |
+          set -e
+          STRINGS="app/src/main/res/values/strings.xml"
+          if [ ! -s "$STRINGS" ]; then
+            cat > "$STRINGS" <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <string name="app_name">Personal App</string>
+          </resources>
+          EOF
+          fi
+
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
