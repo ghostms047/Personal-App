@@ -34,19 +34,39 @@ jobs:
           fi
           echo "root=$ROOT" >> "$GITHUB_OUTPUT"
 
-      - name: Repair empty Android strings resource
+      - name: Repair missing Android build resources
         working-directory: ${{ steps.locate.outputs.root }}
         shell: bash
         run: |
           set -e
           STRINGS="app/src/main/res/values/strings.xml"
-          if [ ! -s "$STRINGS" ]; then
-            cat > "$STRINGS" <<'EOF'
+          mkdir -p "$(dirname "$STRINGS")"
+          cat > "$STRINGS" <<'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <resources>
               <string name="app_name">Personal App</string>
+              <string name="notification_channel_name">Personal App Reminders</string>
+              <string name="notification_channel_description">Personal App reminder notifications</string>
+              <string name="canvas_empty_hint">Ask Personal AI to build something.</string>
+              <string name="chat_placeholder">Ask Personal AI...</string>
+              <string name="settings_title">Settings</string>
+              <string name="welcome_title">Personal App</string>
+              <string name="welcome_subtitle">Build your own workspace with AI.</string>
+              <string name="history_title">History</string>
+              <string name="pages_title">Pages</string>
           </resources>
           EOF
+
+          if [ ! -f debug.keystore ]; then
+            keytool -genkeypair -v \
+              -keystore debug.keystore \
+              -storepass android \
+              -keypass android \
+              -alias androiddebugkey \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
           fi
 
       - name: Set up Java
