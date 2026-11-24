@@ -1,0 +1,70 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract uploaded project
+        run: |
+          mkdir -p build-src
+          unzip -q canvas-ai.zip -d build-src
+          echo "Extracted project:"
+          find build-src -maxdepth 3 -type f | head -100
+
+      - name: Locate Gradle project
+        id: locate
+        shell: bash
+        run: |
+          set -e
+          ROOT=$(find build-src -type f -name gradlew -print -quit | xargs -r dirname)
+          if [ -z "$ROOT" ]; then
+            echo "No gradlew found in uploaded ZIP."
+            exit 1
+          fi
+          echo "root=$ROOT" >> "$GITHUB_OUTPUT"
+          echo "Gradle root: $ROOT"
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make Gradle wrapper executable
+        working-directory: ${{ steps.locate.outputs.root }}
+        run: chmod +x ./gradlew
+
+      - name: Build debug APK
+        working-directory: ${{ steps.locate.outputs.root }}
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Find APK
+        id: apk
+        shell: bash
+        run: |
+          APK=$(find "${{ steps.locate.outputs.root }}" -type f -name '*.apk' -path '*/build/outputs/apk/*' -print -quit)
+          if [ -z "$APK" ]; then
+            echo "No APK was produced."
+            exit 1
+          fi
+          echo "path=$APK" >> "$GITHUB_OUTPUT"
+          echo "APK: $APK"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Personal-App-debug-apk
+          path: ${{ steps.apk.outputs.path }}
+          if-no-files-found: error
