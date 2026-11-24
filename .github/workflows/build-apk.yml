@@ -15,9 +15,9 @@ jobs:
 
       - name: Extract uploaded project
         run: |
+          set -e
           mkdir -p build-src
           unzip -q canvas-ai.zip -d build-src
-          echo "Extracted project:"
           find build-src -maxdepth 3 -type f | head -100
 
       - name: Locate Gradle project
@@ -25,9 +25,12 @@ jobs:
         shell: bash
         run: |
           set -e
-          ROOT=$(find build-src -type f -name gradlew -print -quit | xargs -r dirname)
+          ROOT=$(find build-src -type f -name 'settings.gradle*' -print -quit | xargs -r dirname)
           if [ -z "$ROOT" ]; then
-            echo "No gradlew found in uploaded ZIP."
+            ROOT=$(find build-src -type f -name 'build.gradle*' -print -quit | xargs -r dirname)
+          fi
+          if [ -z "$ROOT" ]; then
+            echo "No Gradle project found in uploaded ZIP."
             exit 1
           fi
           echo "root=$ROOT" >> "$GITHUB_OUTPUT"
@@ -41,19 +44,18 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
-
-      - name: Make Gradle wrapper executable
-        working-directory: ${{ steps.locate.outputs.root }}
-        run: chmod +x ./gradlew
+        with:
+          gradle-version: '8.13'
 
       - name: Build debug APK
         working-directory: ${{ steps.locate.outputs.root }}
-        run: ./gradlew assembleDebug --stacktrace
+        run: gradle assembleDebug --stacktrace --no-daemon
 
       - name: Find APK
         id: apk
         shell: bash
         run: |
+          set -e
           APK=$(find "${{ steps.locate.outputs.root }}" -type f -name '*.apk' -path '*/build/outputs/apk/*' -print -quit)
           if [ -z "$APK" ]; then
             echo "No APK was produced."
