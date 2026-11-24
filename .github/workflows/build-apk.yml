@@ -18,7 +18,6 @@ jobs:
           set -e
           mkdir -p build-src
           unzip -q canvas-ai.zip -d build-src
-          find build-src -maxdepth 3 -type f | head -100
 
       - name: Locate Gradle project
         id: locate
@@ -34,7 +33,6 @@ jobs:
             exit 1
           fi
           echo "root=$ROOT" >> "$GITHUB_OUTPUT"
-          echo "Gradle root: $ROOT"
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -45,7 +43,7 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.13'
+          gradle-version: '9.3.1'
 
       - name: Build debug APK
         working-directory: ${{ steps.locate.outputs.root }}
@@ -62,7 +60,6 @@ jobs:
             exit 1
           fi
           echo "path=$APK" >> "$GITHUB_OUTPUT"
-          echo "APK: $APK"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
